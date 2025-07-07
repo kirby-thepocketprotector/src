@@ -1,0 +1,150 @@
+(function() {
+  let hasWaited = false;
+  let trackedDepths = new Set();
+
+  // Render today's date in "Month Day, Year" format
+  function renderTodayDate() {
+    const dateElements = document.querySelectorAll('.dynamic-date');
+    if (!dateElements.length) return;
+
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = now.toLocaleDateString(undefined, options);
+
+    dateElements.forEach(el => {
+      el.textContent = formattedDate;
+    });
+  }
+
+
+  // Function to check scroll depth
+  function checkScrollDepth() {
+    if (!hasWaited) return;
+
+    const bottomMargin = 80; // pixels of virtual bottom padding
+    const scrollTop = window.scrollY;
+    //const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight - bottomMargin;
+    const scrollPercent = (scrollTop / docHeight) * 100;
+
+    const checkpoints = [25, 50, 75, 100];
+    
+    checkpoints.forEach(percent => {
+    
+      /*if (scrollPercent >= 90 && !trackedDepths.has(percent)) {
+        trackedDepths.add(percent);
+        console.log(`Scrolled ${percent}%`);
+        // Do something when scroll is greater than 90%
+        if (window.dataLayer) {
+          window.dataLayer.push({
+            event: 'scroll_depth',
+            depth: '100%',
+            non_interaction: false
+          });
+          console.log(window.dataLayer);
+          console.log("User has scrolled more than 90%");
+        }
+      }*/
+      //else {
+      
+        if (scrollPercent >= percent && !trackedDepths.has(percent)) {
+          trackedDepths.add(percent);
+          console.log(`Scrolled ${percent}%`);
+
+          // Push to dataLayer with non_interaction: false
+          if (window.dataLayer) {
+
+              window.dataLayer.push({
+                event: 'scroll_depth',
+                depth: percent + '%',
+                non_interaction: false
+              });
+
+            console.log(window.dataLayer);
+          }
+        }
+
+      //}
+    });
+  }
+
+  // Start listening after 10 seconds
+  setTimeout(() => {
+    hasWaited = true;
+    console.log('User waited for 10 seconds.');
+    window.addEventListener('scroll', checkScrollDepth);
+  }, 10000);
+
+  // Run date rendering immediately on page load
+  renderTodayDate();
+  
+  $('#phone-number-header').click(function(){
+    // Push to dataLayer with non_interaction: false
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: 'call_now_click',
+        location: 'header',
+        non_interaction: false
+      });
+      console.log(window.dataLayer);
+    }
+  });
+
+  $('#phone-number-bottom').click(function(){
+    // Push to dataLayer with non_interaction: false
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: 'article_to_ntmscreen_click',
+        location: 'bottom',
+        non_interaction: false
+      });
+      console.log(window.dataLayer);
+      
+      let redirect_url = $(this).attr('redirect');
+      
+      //Start page
+      sessionStorage.setItem('visitedFromStart', 'true');
+
+      setTimeout(function(){
+        //window.location = redirect_url + window.location.search;
+        window.location.replace(redirect_url + window.location.search);
+      }, 500);
+      
+    }
+  });
+})();
+
+
+function phoneFormat(input) {
+    // Remove all non-numeric characters
+    let digits = input.replace(/\D/g, '');
+
+    // Remove country code if it starts with '1' and is 11 digits
+    if (digits.startsWith('1') && digits.length === 11) {
+        digits = digits.substring(1);
+    }
+
+    // Limit to the first 10 digits
+    digits = digits.substring(0, 10);
+
+    let formattedNumber = "";
+    const size = digits.length;
+
+    if (size > 0) { formattedNumber = "(" + digits.slice(0, 3); }
+    if (size > 3) { formattedNumber += ") " + digits.slice(3, 6); }
+    if (size > 6) { formattedNumber += "-" + digits.slice(6); }
+
+    const isValid = digits.length === 10;
+    const $button = $(".button.nav-btn.phone-number.v5.text-weight-semi-bold");
+    
+    if (isValid) {
+      $button.removeClass("is-disabled");
+      $('.error-input-msg.phone-msg').hide();
+    } else {
+      $button.addClass("is-disabled");
+      $('.error-input-msg.phone-msg').show();
+    }
+
+    return formattedNumber
+    
+}
